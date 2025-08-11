@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WiFi QR Code Generator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      padding: 40px;
+      max-width: 1000px;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .content-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+
+    .form-section {
+      max-width: 400px;
+    }
+
+    .container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+    }
+
+    h1 {
+      color: #333;
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 1rem;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    label {
+      display: block;
+      color: #555;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+
+    .input-container {
+      position: relative;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 16px 20px;
+      font-size: 16px;
+      border: 2px solid #e1e5e9;
+      border-radius: 12px;
+      background: #fff;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      font-size: 18px;
+      transition: color 0.3s ease;
+    }
+
+    .password-toggle:hover {
+      color: #667eea;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+
+    .checkbox-group label {
+      margin: 0;
+      font-weight: 500;
+      color: #666;
+      cursor: pointer;
+    }
+
+    .qr-section {
+      text-align: center;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease;
+    }
+
+    .qr-section.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: #666;
+      border: 2px dashed #ddd;
+      border-radius: 16px;
+      background: #f8f9fa;
+    }
+
+    .empty-state .icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .empty-state small {
+      opacity: 0.7;
+    }
+
+    .qr-container {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      margin-bottom: 24px;
+      display: inline-block;
+    }
+
+    .wifi-info {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .wifi-info h3 {
+      color: #333;
+      margin-bottom: 12px;
+      font-size: 1.1rem;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .info-label {
+      font-weight: 600;
+      color: #555;
+    }
+
+    .info-value {
+      color: #333;
+      font-family: monospace;
+      background: #fff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      background: #fff;
+      color: #667eea;
+      border: 2px solid #667eea;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .action-btn:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    .status-message {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .status-message.show {
+      opacity: 1;
+    }
+
+    .status-message.success {
+      background: #d1edff;
+      color: #0066cc;
+      border: 1px solid #99d6ff;
+    }
+
+    .status-message.error {
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #ffcdd2;
+    }
+
+    .instructions {
+      background: #e3f2fd;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 24px;
+      text-align: left;
+    }
+
+    .instructions h4 {
+      color: #1565c0;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .instructions ol {
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .instructions li {
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .content-wrapper {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+      
+      .container {
+        padding: 24px;
+        margin: 10px;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .action-btn {
+        justify-content: center;
+      }
+      
+      .form-section {
+        max-width: none;
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container fade-in">
+    <h1>📶 WiFi QR Generator</h1>
+    <p class="subtitle">Create QR codes for instant WiFi sharing</p>
+
+    <div class="content-wrapper">
+      <div class="form-section">
+        <form id="wifiForm">
+          <div class="form-group">
+            <label for="ssid">Network Name (SSID)</label>
+            <input type="text" id="ssid" placeholder="Enter your WiFi network name" required>
+          </div>
+
+          <div class="form-group">
+            <label for="password">WiFi Password</label>
+            <div class="input-container">
+              <input type="password" id="password" placeholder="Enter WiFi password">
+              <button type="button" class="password-toggle" onclick="togglePassword()">👁️</button>
+            </div>
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="hidden">
+            <label for="hidden">Hidden Network</label>
+          </div>
+        </form>
+
+        <div class="status-message" id="statusMessage"></div>
+
+        <div class="instructions">
+          <h4>📱 How to Use</h4>
+          <ol>
+            <li>Open your phone's camera app</li>
+            <li>Point the camera at the QR code</li>
+            <li>Tap the WiFi notification that appears</li>
+            <li>Your device will automatically connect!</li>
+          </ol>
+        </div>
+      </div>
+
+      <div id="qrSection" class="qr-section">
+        <div class="empty-state" id="emptyState">
+          <div class="icon">📶</div>
+          <p>Enter WiFi details</p>
+          <small>QR code will appear here automatically</small>
+        </div>
+
+        <div id="qrContent" style="display: none;">
+          <div class="qr-container">
+            <div id="qrcode"></div>
+          </div>
+
+          <div class="wifi-info" id="wifiInfo">
+            <h3>📋 Network Details</h3>
+            <div class="info-row">
+              <span class="info-label">Network:</span>
+              <span class="info-value" id="displaySSID">-</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Password:</span>
+              <span class="info-value" id="displayPassword">-</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="action-btn" onclick="downloadQR()">
+              💾 Download
+            </button>
+            <button class="action-btn" onclick="printQR()">
+              🖨️ Print
+            </button>
+            <button class="action-btn" onclick="shareQR()">
+              📤 Share
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    let qr = null;
+    let currentWiFiString = '';
+    let debounceTimer = null;
+
+    const qrSection = document.getElementById('qrSection');
+    const qrContainer = document.getElementById('qrcode');
+    const statusMessage = document.getElementById('statusMessage');
+    const emptyState = document.getElementById('emptyState');
+    const qrContent = document.getElementById('qrContent');
+
+    // Add event listeners for real-time generation
+    document.getElementById('ssid').addEventListener('input', debounceGenerate);
+    document.getElementById('password').addEventListener('input', debounceGenerate);
+    document.getElementById('hidden').addEventListener('change', debounceGenerate);
+
+    function debounceGenerate() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(generateQRCode, 300);
+    }
+
+    function generateQRCode() {
+      const ssid = document.getElementById('ssid').value.trim();
+      const password = document.getElementById('password').value;
+      const hidden = document.getElementById('hidden').checked;
+
+      // If no SSID, show empty state
+      if (!ssid) {
+        showEmptyState();
+        return;
+      }
+
+      try {
+        // Create WiFi QR code string (WPA by default, or no password if empty)
+        const security = password ? 'WPA' : 'nopass';
+        currentWiFiString = `WIFI:T:${security};S:${escapeSpecialChars(ssid)};P:${escapeSpecialChars(password)};H:${hidden ? 'true' : 'false'};;`;
+
+        // Clear previous QR code
+        qrContainer.innerHTML = '';
+
+        // Generate new QR code
+        qr = new QRCode(qrContainer, {
+          text: currentWiFiString,
+          width: 200,
+          height: 200,
+          colorDark: '#333333',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+
+        // Update display info
+        updateDisplayInfo(ssid, password);
+
+        // Show QR content
+        showQRContent();
+        
+      } catch (error) {
+        console.error('Error generating QR code:', error);
+        showStatus('Error generating QR code', 'error');
+      }
+    }
+
+    function showEmptyState() {
+      emptyState.style.display = 'flex';
+      qrContent.style.display = 'none';
+      qrSection.classList.remove('visible');
+    }
+
+    function showQRContent() {
+      emptyState.style.display = 'none';
+      qrContent.style.display = 'block';
+      qrSection.classList.add('visible');
+    }
+
+    function escapeSpecialChars(str) {
+      return str.replace(/[\\";,]/g, '\\$&');
+    }
+
+    function updateDisplayInfo(ssid, password) {
+      document.getElementById('displaySSID').textContent = ssid;
+      document.getElementById('displayPassword').textContent = password || 'None (Open Network)';
+    }
+
+    function showStatus(message, type) {
+      statusMessage.textContent = message;
+      statusMessage.className = `status-message show ${type}`;
+      
+      setTimeout(() => {
+        statusMessage.classList.remove('show');
+      }, 4000);
+    }
+
+    function togglePassword() {
+      const passwordInput = document.getElementById('password');
+      const toggleBtn = document.querySelector('.password-toggle');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleBtn.textContent = '🙈';
+      } else {
+        passwordInput.type = 'password';
+        toggleBtn.textContent = '👁️';
+      }
+    }
+
+    function downloadQR() {
+      if (!qr) return;
+      
+      const canvas = qrContainer.querySelector('canvas');
+      if (canvas) {
+        const link = document.createElement('a');
+        link.download = `WiFi-QR-${document.getElementById('ssid').value}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+        showStatus('QR code downloaded!', 'success');
+      }
+    }
+
+    function printQR() {
+      if (!qr) return;
+      
+      const printWindow = window.open('', '_blank');
+      const canvas = qrContainer.querySelector('canvas');
+      
+      if (canvas) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>WiFi QR Code</title>
+              <style>
+                body { text-align: center; font-family: Arial, sans-serif; margin: 40px; }
+                h1 { color: #333; margin-bottom: 20px; }
+                .info { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px; }
+                img { margin: 20px 0; }
+              </style>
+            </head>
+            <body>
+              <h1>WiFi QR Code</h1>
+              <img src="${canvas.toDataURL()}" />
+              <div class="info">
+                <h3>Network: ${document.getElementById('ssid').value}</h3>
+                <p>Scan this QR code with your phone's camera to connect automatically</p>
+              </div>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      }
+    }
+
+    async function shareQR() {
+      if (!qr) return;
+      
+      const canvas = qrContainer.querySelector('canvas');
+      if (canvas && navigator.share) {
+        try {
+          canvas.toBlob(async (blob) => {
+            const file = new File([blob], 'wifi-qr-code.png', { type: 'image/png' });
+            await navigator.share({
+              title: 'WiFi QR Code',
+              text: `WiFi Network: ${document.getElementById('ssid').value}`,
+              files: [file]
+            });
+          });
+        } catch (error) {
+          // Fallback to copying link
+          copyToClipboard();
+        }
+      } else {
+        copyToClipboard();
+      }
+    }
+
+    function copyToClipboard() {
+      navigator.clipboard.writeText(currentWiFiString).then(() => {
+        showStatus('WiFi details copied to clipboard!', 'success');
+      }).catch(() => {
+        showStatus('Unable to copy. Please try downloading instead.', 'error');
+      });
+    }
+
+    // Initialize with empty state
+    document.addEventListener('DOMContentLoaded', function() {
+      showEmptyState();
+      document.getElementById('ssid').focus();
+    });
+  </script>
+</body>
+</html>
